@@ -109,8 +109,24 @@ def validateInputs():
 	tableNameExists = runSqlAsSys("set feedback off Heading off\nselect table_name from dba_tables where table_name = '" + tableName[count] + "' and table_owner='" + tableOwner[count] ";") != ""
 	columnNamesExist = runSqlAsSys("set feedback off Heading off\nselect count(*) from dba_tab_cols where COLUMN_NAME in ("+columnNamesQuotedCSV[count]+") and TABLE_NAME = '"+tableName[count]+"';") == (columnNamesCSV[count].count(',') + 1)
 
-	indexCreatable = 
+	#### check if there is any index existing on the same table with the same combination of columns
+	indexCreatable = True
+	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect distinct index_name from user_indexes where table_name = '"+tableName[count]+"';").split('\n')
+	columnsOfIndex = runSqlAsSys("set feedback off Heading off\nselect column_name from dba_ind_columns where index_name = '"+indexName[count]+"';").split('\n')
 
+	indexMatching = False
+	columnMatchCount = 0
+	columnNamesArray = columnNamesCSV[count].split(',').strip()
+	for i in existingIndexes:
+		for j in columnsOfIndex:
+			if j in columnNamesArray:
+				columnMatchCount +=1
+		if columnMatchCount == len(columnNamesArray) and len(columnsOfIndex) == len(columnNamesArray):
+			indexCreatable = False
+			break
+
+
+	#### check if any parameters are null
 	paramaterNull = (indexName[count] == '' or tableOwner[count] == '' or tableName[count] == '' or columnNamesCSV[count] == '' )
 
 	if not indexNameFree:

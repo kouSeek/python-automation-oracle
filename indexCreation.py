@@ -111,17 +111,17 @@ def validateInputs():
 
 	#### check if there is any index existing on the same table with the same combination of columns
 	indexCreatable = True
-	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect distinct index_name from user_indexes where table_name = '"+tableName[count]+"';").split('\n')
+	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect distinct index_name from user_indexes where table_name = '"+tableName[count]+"';").splitlines()
 
 	indexMatching = False
 	columnMatchCount = 0
-	columnNamesArray = columnNamesCSV[count].split(',').strip()
+	inputColumnNamesArray = map(lambda x: x.strip(), columnNamesCSV[count].split(','))
 	for i in existingIndexes:
-		columnsOfExistingIndex = runSqlAsSys("set feedback off Heading off\nselect column_name from dba_ind_columns where index_name = '"+ i +"';").split('\n')
+		columnsOfExistingIndex = runSqlAsSys("set feedback off Heading off\nselect column_name from dba_ind_columns where index_name = '"+ i +"';").splitlines()
 		for j in columnsOfExistingIndex:
-			if j in columnNamesArray:
+			if j in inputColumnNamesArray:
 				columnMatchCount +=1
-		if columnMatchCount == len(columnNamesArray) and len(columnsOfExistingIndex) == len(columnNamesArray):
+		if columnMatchCount == len(inputColumnNamesArray) and len(columnsOfExistingIndex) == len(inputColumnNamesArray):
 			indexCreatable = False
 			break
 
@@ -154,8 +154,8 @@ def validateInputs():
 
 def printFindings():
 	print '''
-		Findings
-		##############
+Findings
+##############
 
 	'''
 	print "## Instance Details:"
@@ -218,8 +218,8 @@ if len(indexStatement) == 0:
 ############################
 # Print Action Plan
 print '''\n\n
-	FINAL ACTION PLAN
-	###################
+FINAL ACTION PLAN
+###################
 
 1) Take backup of invalids
 2) Login to DB Node as sys user

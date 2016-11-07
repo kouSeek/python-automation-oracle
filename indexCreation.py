@@ -112,16 +112,16 @@ def validateInputs():
 	#### check if there is any index existing on the same table with the same combination of columns
 	indexCreatable = True
 	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect distinct index_name from user_indexes where table_name = '"+tableName[count]+"';").split('\n')
-	columnsOfIndex = runSqlAsSys("set feedback off Heading off\nselect column_name from dba_ind_columns where index_name = '"+indexName[count]+"';").split('\n')
 
 	indexMatching = False
 	columnMatchCount = 0
 	columnNamesArray = columnNamesCSV[count].split(',').strip()
 	for i in existingIndexes:
-		for j in columnsOfIndex:
+		columnsOfExistingIndex = runSqlAsSys("set feedback off Heading off\nselect column_name from dba_ind_columns where index_name = '"+ i +"';").split('\n')
+		for j in columnsOfExistingIndex:
 			if j in columnNamesArray:
 				columnMatchCount +=1
-		if columnMatchCount == len(columnNamesArray) and len(columnsOfIndex) == len(columnNamesArray):
+		if columnMatchCount == len(columnNamesArray) and len(columnsOfExistingIndex) == len(columnNamesArray):
 			indexCreatable = False
 			break
 

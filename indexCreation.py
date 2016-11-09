@@ -107,9 +107,6 @@ def validateInputs():
 	global count
 	indexNameFree = runSqlAsSys("set feedback off Heading off\nselect index_name from dba_indexes where index_name = '" + indexName[count] + "';") == ""
 	tableNameExists = runSqlAsSys("set feedback off Heading off\nselect table_name from dba_tables where table_name = '" + tableName[count] + "' and table_owner='" + tableOwner[count] ";") != ""
-	columnNamesExist = runSqlAsSys("set feedback off Heading off\nselect count(*) from dba_tab_cols where COLUMN_NAME in ("+columnNamesQuotedCSV[count]+") and TABLE_NAME = '"+tableName[count]+"';") == (columnNamesCSV[count].count(',') + 1)
-
-	indexCreatable = 
 
 	paramaterNull = (indexName[count] == '' or tableOwner[count] == '' or tableName[count] == '' or columnNamesCSV[count] == '' )
 
@@ -132,7 +129,6 @@ def validateInputs():
 		tableName.pop()
 		columnNamesCSV.pop()
 		columnNamesQuotedCSV.pop()
-		count -= 1
 		start()
 
 

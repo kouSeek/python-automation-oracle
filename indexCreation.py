@@ -1,7 +1,7 @@
 #+=================================================================================+
 # |Author : Koushik Chakraborty
 # |Creation date : 28-Sept-2016
-# |Modified On : 25-Oct-2016
+# |Modified On : 7-Nov-2016
 # |Version : 1.0
 # |Catagory : MT
 # |DESCRIPTION 
@@ -106,14 +106,13 @@ def loopParameters():
 def validateInputs():
 	global count
 	indexNameFree = runSqlAsSys("set feedback off Heading off\nselect index_name from dba_indexes where index_name = '" + indexName[count] + "';") == ""
-	tableNameExists = runSqlAsSys("set feedback off Heading off\nselect table_name from dba_tables where table_name = '" + tableName[count] + "' and table_owner='" + tableOwner[count] ";") != ""
-	columnNamesExist = runSqlAsSys("set feedback off Heading off\nselect count(*) from dba_tab_cols where COLUMN_NAME in ("+columnNamesQuotedCSV[count]+") and TABLE_NAME = '"+tableName[count]+"';") == (columnNamesCSV[count].count(',') + 1)
+	tableNameExists = runSqlAsSys("set feedback off Heading off\nselect table_name from dba_tables where table_name = '" + tableName[count] + "' and owner = '" + tableOwner[count] + "';") != ""
+	columnNamesExist = ( int(runSqlAsSys("set feedback off Heading off\nselect count(*) from dba_tab_cols where COLUMN_NAME in ("+columnNamesQuotedCSV[count]+") and TABLE_NAME = '"+tableName[count]+"';")) == len(columnNamesCSV[count].split(',')) )
 
 	#### check if there is any index existing on the same table with the same combination of columns
 	indexCreatable = True
-	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect distinct index_name from user_indexes where table_name = '"+tableName[count]+"';").splitlines()
+	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect index_name from user_indexes where table_name = '"+tableName[count]+"';").splitlines()
 
-	indexMatching = False
 	columnMatchCount = 0
 	inputColumnNamesArray = map(lambda x: x.strip(), columnNamesCSV[count].split(','))
 	for i in existingIndexes:
@@ -148,7 +147,6 @@ def validateInputs():
 		tableName.pop()
 		columnNamesCSV.pop()
 		columnNamesQuotedCSV.pop()
-		count -= 1
 		start()
 
 
@@ -205,15 +203,13 @@ columnNamesCSV = []
 columnNamesQuotedCSV = []
 
 getMode()
-
 start()
-
-printFindings()
 
 if len(indexStatement) == 0:
 	print "No valid Indexes found."
 	sys.exit()
 
+printFindings()
 
 ############################
 # Print Action Plan
@@ -222,7 +218,9 @@ FINAL ACTION PLAN
 ###################
 
 1) Take backup of invalids
+
 2) Login to DB Node as sys user
+
 3) Run below statements for Creating Indexes:
 '''
 for i in indexStatement:

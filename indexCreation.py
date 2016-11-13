@@ -75,7 +75,7 @@ def loadIndexData():
 		columnNamesQuotedCSV.append( "'" + "\',\'".join(i.strip() for i in columnNamesCSV[count].split(',')) + "'" )
 		# en-quote each column names and trim whitespaces
 	except:
-		print "\t-- Create Index statement was not given in proper format... Please enter again\n"
+		print "\t~~~~~ Create Index statement was not given in proper format... Please enter again\n"
 		loopStatements()
 
 
@@ -84,7 +84,7 @@ def loopParameters():
 	global count
 	while True:
 		print "\n\nEnter all the parameters individualy :\n"
-		input0 = raw_input("Enter the INDEX owner / or press enter to skip : ").upper()
+		input0 = raw_input("Enter the INDEX owner / or press enter to get the Action Plan : ").upper()
 		if input0 == "":
 			break
 		indexOwner.append(input0)
@@ -129,15 +129,15 @@ def validateInputs():
 	paramaterNull = (indexName[count] == '' or tableOwner[count] == '' or tableName[count] == '' or columnNamesCSV[count] == '' )
 
 	if not indexNameFree:
-		print "\nIndex name already exists. Please enter correct input.\n"
+		print "\n~~~~~Index name already exists. Please enter correct input.~~~~~~\n"
 	if not tableNameExists:
-		print "\nThe table name doesn't exist under the given Owner. Please enter correct input.\n"
+		print "\n~~~~~The table name doesn't exist under the given Owner. Please enter correct input.~~~~~~\n"
 	if paramaterNull:
-		print "\nSome parameters are given Null. Please enter correct input.\n"
+		print "\n~~~~~Some parameters are given Null. Please enter correct input.~~~~~~\n"
 	if not columnNamesExist:
-		print "\nThe given column names are not correct. Please enter correct column names again.\n"
+		print "\n~~~~~The given column names are not correct. Please enter correct column names again.~~~~~~\n"
 	if not indexCreatable:
-		print "\nThere already exists an index on the same table with the same combination of columns. So this index can not be created.\n"
+		print "\n~~~~~There already exists an index on the same table with the same combination of columns. So this index can not be created.~~~~~~\n"
 
 	if not indexNameFree or not tableNameExists or paramaterNull or not columnNamesExist or not indexCreatable:
 		indexStatement.pop()
@@ -181,7 +181,7 @@ SQL> select OBJECT_NAME,OWNER from dba_objects where OBJECT_TYPE = 'TABLE' and O
 
 		print "SQL> explain plan for " + indexStatement[i] + ";"
 		print "SQL> @$ORACLE_HOME/rdbms/admin/utlxplp"
-		print runSqlAsSys("explain plan for " + indexStatement[i] + ";\n\n@$ORACLE_HOME/rdbms/admin/utlxplp")
+		print runSqlAsSys("explain plan for " + indexStatement[i] + ";\nset linesize 250\n@$ORACLE_HOME/rdbms/admin/utlxplp")
 
 
 
@@ -224,11 +224,11 @@ FINAL ACTION PLAN
 3) Run below statements for Creating Indexes:
 '''
 for i in indexStatement:
-	print i, "nologging parallel;"
+	print i, "nologging parallel;\n"
 
 print "\n4) Run below:\n"
 for i in range(len(indexStatement)):
-	print "alter index " + indexOwner[i] + '.' + indexName[i] + " logging noparallel;"
+	print "alter index " + indexOwner[i] + '.' + indexName[i] + " logging noparallel;\n"
 
 print '''
 5) Check and compile new invalids

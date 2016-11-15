@@ -91,7 +91,7 @@ def loopParameters():
 		indexName.append( raw_input("Enter the INDEX name : ").upper() )
 		tableOwner.append( raw_input("Enter the TABLE owner : ").upper() )
 		tableName.append( raw_input("Enter the TABLE name : ").upper() )
-		columnNamesCSV.append( raw_input("Enter the column names separated by comma(without quotes) : ").upper() )
+		columnNamesCSV.append( raw_input("Enter the column names separated by comma(without quotes/space allowed) : ").upper() )
 		columnNamesQuotedCSV.append( "'" + "\',\'".join(i.strip() for i in columnNamesCSV[count].split(',')) + "'"  )
 
 		indexStatement.append("create index " + indexOwner[count] + "." + indexName[count] + " on " + \
@@ -111,15 +111,16 @@ def validateInputs():
 
 	#### check if there is any index existing on the same table with the same combination of columns
 	indexCreatable = True
-	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect index_name from user_indexes where table_name = '"+tableName[count]+"';").splitlines()
+	existingIndexes = runSqlAsSys("set feedback off Heading off\nselect index_name from dba_indexes where table_name = '"+tableName[count]+"';")[1:].splitlines()
 
-	columnMatchCount = 0
 	inputColumnNamesArray = map(lambda x: x.strip(), columnNamesCSV[count].split(','))
 	for i in existingIndexes:
-		columnsOfExistingIndex = runSqlAsSys("set feedback off Heading off\nselect column_name from dba_ind_columns where index_name = '"+ i +"';").splitlines()
+		columnsOfExistingIndex = runSqlAsSys("set feedback off Heading off\nselect column_name from dba_ind_columns where index_name = '"+ i +"';")[1:].splitlines()
+		columnMatchCount = 0
 		for j in columnsOfExistingIndex:
 			if j in inputColumnNamesArray:
 				columnMatchCount +=1
+
 		if columnMatchCount == len(inputColumnNamesArray) and len(columnsOfExistingIndex) == len(inputColumnNamesArray):
 			indexCreatable = False
 			break
@@ -128,16 +129,30 @@ def validateInputs():
 	#### check if any parameters are null
 	paramaterNull = (indexName[count] == '' or tableOwner[count] == '' or tableName[count] == '' or columnNamesCSV[count] == '' )
 
+	#### other errors:
+	otherError = 'ERROR' in runSqlAsSys("explain plan for " + indexStatement[count] + ";\n@$ORACLE_HOME/rdbms/admin/utlxplp")
+
+
+	#######
 	if not indexNameFree:
 		print "\n~~~~~Index name already exists. Please enter correct input.~~~~~~\n"
+		print runSqlAsSys("select index_name from dba_indexes where index_name = '" + indexName[count] + "';")
 	if not tableNameExists:
 		print "\n~~~~~The table name doesn't exist under the given Owner. Please enter correct input.~~~~~~\n"
+		print runSqlAsSys("select table_name from dba_tables where table_name = '" + tableName[count] + "' and owner = '" + tableOwner[count] + "';")
 	if paramaterNull:
 		print "\n~~~~~Some parameters are given Null. Please enter correct input.~~~~~~\n"
 	if not columnNamesExist:
 		print "\n~~~~~The given column names are not correct. Please enter correct column names again.~~~~~~\n"
+		print runSqlAsSys("desc " + tableName[count])
 	if not indexCreatable:
 		print "\n~~~~~There already exists an index on the same table with the same combination of columns. So this index can not be created.~~~~~~\n"
+		print runSqlAsSys("set lines 200\ncol INDEX_NAME for a35\ncol TABLE_NAME for a30\ncol COLUMN_NAME for a20\n\
+		select INDEX_NAME,COLUMN_NAME,TABLE_NAME from dba_ind_columns where TABLE_NAME = '" + tableName[count] + "';" )
+
+	if otherError:
+		print "The index creation has follwoing problem:\n"
+		print runSqlAsSys("explain plan for " + indexStatement[count] + ";\n@$ORACLE_HOME/rdbms/admin/utlxplp")
 
 	if not indexNameFree or not tableNameExists or paramaterNull or not columnNamesExist or not indexCreatable:
 		indexStatement.pop()
@@ -159,7 +174,7 @@ Findings
 	print "## Instance Details:"
 	print runSqlAsSys("show user;\nselect name, created from v$database;\nselect release_name from apps.fnd_product_groups;")
 
-	print "\t## Details of given tables:"
+	print "## Details of given tables:"
 	print '''
 SQL> col OBJECT_NAME for a30
 SQL> col OBJECT_TYPE for a15
@@ -168,7 +183,7 @@ SQL> select OBJECT_NAME,OWNER from dba_objects where OBJECT_TYPE = 'TABLE' and O
 	print runSqlAsSys("col OBJECT_NAME for a30\ncol OBJECT_TYPE for a15\ncol OWNER for a10\nselect OBJECT_NAME,OWNER from\
 	 dba_objects where OBJECT_TYPE = 'TABLE' and OBJECT_NAME in ('" + "','".join(tableName) + "');")
 
-	print "\t## Size of given tables:\n"
+	print "## Size of given tables:\n"
 	print "SQL> select segment_name, sum(BYTES)/1024/1024 MB from dba_segments where segment_name in ('" + "','".join(tableName) + "') group by segment_name;"
 	print runSqlAsSys("col segment_name for a30\nselect segment_name, sum(BYTES)/1024/1024 MB from dba_segments where segment_name in ('" + "','".join(tableName) + "') group by segment_name;")
 

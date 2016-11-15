@@ -61,10 +61,10 @@ def loopStatements():
 			if indexStatement[count].strip()[-1:] == ";":
 				indexStatement[count] = indexStatement[count].strip()[:-1]
 			loadIndexData()
-			validateInputs()
-			count += 1
+
 
 def loadIndexData():
+	global count
 	searchPattern = "create +index +(\w+)\.([\w$]+) +on +(\w+)\.([\w$]+) *\(([\w,\s]+)\)"
 	try:
 		indexOwner.append( re.search(searchPattern, indexStatement[count], flags=re.IGNORECASE).group(1).upper() )
@@ -74,9 +74,12 @@ def loadIndexData():
 		columnNamesCSV.append( re.search(searchPattern, indexStatement[count], flags=re.IGNORECASE).group(5).upper() )
 		columnNamesQuotedCSV.append( "'" + "\',\'".join(i.strip() for i in columnNamesCSV[count].split(',')) + "'" )
 		# en-quote each column names and trim whitespaces
+		validateInputs()
+		count += 1
+
 	except:
 		print "\t~~~~~ Create Index statement was not given in proper format... Please enter again\n"
-		loopStatements()
+		indexStatement.pop()
 
 
 #######  functions for mode 2
@@ -87,19 +90,19 @@ def loopParameters():
 		input0 = raw_input("Enter the INDEX owner / or press enter to get the Action Plan : ").upper()
 		if input0 == "":
 			break
-		indexOwner.append(input0)
-		indexName.append( raw_input("Enter the INDEX name : ").upper() )
-		tableOwner.append( raw_input("Enter the TABLE owner : ").upper() )
-		tableName.append( raw_input("Enter the TABLE name : ").upper() )
-		columnNamesCSV.append( raw_input("Enter the column names separated by comma(without quotes/space allowed) : ").upper() )
-		columnNamesQuotedCSV.append( "'" + "\',\'".join(i.strip() for i in columnNamesCSV[count].split(',')) + "'"  )
+		else:
+			indexOwner.append(input0)
+			indexName.append( raw_input("Enter the INDEX name : ").upper() )
+			tableOwner.append( raw_input("Enter the TABLE owner : ").upper() )
+			tableName.append( raw_input("Enter the TABLE name : ").upper() )
+			columnNamesCSV.append( raw_input("Enter the column names separated by comma(without quotes/space allowed) : ").upper() )
+			columnNamesQuotedCSV.append( "'" + "\',\'".join(i.strip() for i in columnNamesCSV[count].split(',')) + "'"  )
 
-		indexStatement.append("create index " + indexOwner[count] + "." + indexName[count] + " on " + \
-		    tableOwner[count] + "." + tableName[count] + "(" + columnNamesCSV[count]+")" )
+			indexStatement.append("create index " + indexOwner[count] + "." + indexName[count] + " on " + \
+			    tableOwner[count] + "." + tableName[count] + "(" + columnNamesCSV[count]+")" )
 
-		validateInputs()
-		count += 1
-
+			validateInputs()
+			count += 1
 
 
 ######
@@ -144,7 +147,7 @@ def validateInputs():
 		print "\n~~~~~Some parameters are given Null. Please enter correct input.~~~~~~\n"
 	if not columnNamesExist:
 		print "\n~~~~~The given column names are not correct. Please enter correct column names again.~~~~~~\n"
-		print runSqlAsSys("desc " + tableName[count])
+		print runSqlAsSys("desc " + tableOwner[count]+'.'+tableName[count])
 	if not indexCreatable:
 		print "\n~~~~~There already exists an index on the same table with the same combination of columns. So this index can not be created.~~~~~~\n"
 		print runSqlAsSys("set lines 200\ncol INDEX_NAME for a35\ncol TABLE_NAME for a30\ncol COLUMN_NAME for a20\n\
@@ -154,7 +157,7 @@ def validateInputs():
 		print "The index creation has follwoing problem:\n"
 		print runSqlAsSys("explain plan for " + indexStatement[count] + ";\n@$ORACLE_HOME/rdbms/admin/utlxplp")
 
-	if not indexNameFree or not tableNameExists or paramaterNull or not columnNamesExist or not indexCreatable:
+	if not indexNameFree or not tableNameExists or paramaterNull or not columnNamesExist or not indexCreatable or otherError:
 		indexStatement.pop()
 		indexOwner.pop()
 		indexName.pop()
@@ -162,7 +165,7 @@ def validateInputs():
 		tableName.pop()
 		columnNamesCSV.pop()
 		columnNamesQuotedCSV.pop()
-		start()
+		count -= 1
 
 
 def printFindings():
@@ -221,7 +224,7 @@ getMode()
 start()
 
 if len(indexStatement) == 0:
-	print "No valid Indexes found."
+	print "\n\tNo valid Indexes found.\n"
 	sys.exit()
 
 printFindings()
@@ -232,32 +235,32 @@ print '''\n\n
 FINAL ACTION PLAN
 ###################
 
-1) Take backup of invalids
+	1) Take backup of invalids
 
-2) Login to DB Node as sys user
+	2) Login to DB Node as sys user
 
-3) Run below statements for Creating Indexes:
+	3) Run below statements for Creating Indexes:
 '''
 for i in indexStatement:
-	print i, "nologging parallel;\n"
+	print '\t',i, "nologging parallel;\n"
 
-print "\n4) Run below:\n"
+print "\n\t,4) Run below:\n"
 for i in range(len(indexStatement)):
-	print "alter index " + indexOwner[i] + '.' + indexName[i] + " logging noparallel;\n"
+	print '\t',"alter index " + indexOwner[i] + '.' + indexName[i] + " logging noparallel;\n"
 
 print '''
-5) Check and compile new invalids
+	5) Check and compile new invalids
 
-6) Verification :
+	6) Verification :
 
-set lines 130
-col INDEX_NAME for a40
-col TABLE_NAME for a45
-col COLUMN_NAME for a45
-Select INDEX_NAME,TABLE_NAME,COLUMN_NAME from dba_ind_columns where INDEX_NAME in (\'''' + "','".join(indexName) + '''\');
+	set lines 130
+	col INDEX_NAME for a40
+	col TABLE_NAME for a45
+	col COLUMN_NAME for a45
+	Select INDEX_NAME,TABLE_NAME,COLUMN_NAME from dba_ind_columns where INDEX_NAME in (\'''' + "','".join(indexName) + '''\');
 \n
-	WINDOW
-	########
+WINDOW
+########
 
 	WINDOW TYPE : Service Window
 	PERIOD      : < Hours >
